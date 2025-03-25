@@ -20,12 +20,12 @@ namespace plt = matplotlibcpp;
 
 int main() 
 {
-  // Definition of parameters 
+  // Definition of parameters:
   vector<double> L = {8, 12, 32, 64}; // # of lattice points
   vector<double> W = {2, 3, 4}; // perturbance amplitude
   const int N = 30; // # of simulations per parameter for the averaging of the simulation values
   vector<double> T_pars = {-5, 20, 0.5, 1}; // Time specifications of the simulation {tmin, tmax, step, log scale(0:false, 1:trues)}
-  bool off_diag = true;
+  bool off_diag = false;
   
   // Distribution function initialization
   default_random_engine generator;
@@ -36,8 +36,8 @@ int main()
 
     // Distribution function:
     //uniform_real_distribution<double> distribution(-W[kk], W[kk]);
-    gamma_distribution<double> distribution (2.0,2.0);
-    //normal_distribution<double> distribution(1.0,W[kk]);
+    //gamma_distribution<double> distribution (2.0,2.0);
+    normal_distribution<double> distribution(2.0,W[kk]);
 
     // distribuition function and perturbation info
     vector<double> pert = {W[kk]};
@@ -69,15 +69,35 @@ int main()
 
       // Innitialization of the Matrix object which will be the hamiltonian
       MatrixXcd ham;
+      MatrixXcd ham_aux;
 
       for (int ll=0; ll<N; ll++)
       {
         printProgressBar(ll, N);
 
         // Hamiltonian creation with a diagonal potential perturbation
-        ham.resize(pars[0], pars[0]);
-        ham.setZero();
-        hamiltonian_creator(ham, distribution(generator));
+        
+        if (off_diag) {
+          ham_aux.resize(pars[0], pars[0]);
+          ham_aux.setZero();
+          for (int jj=0; jj<ham.rows()-1; jj++)
+          {
+            ham_aux(jj+1, jj) =  distribution(generator); 
+          }
+
+          ham = ham_aux + ham_aux.transpose();
+         
+        } else {
+          ham.resize(pars[0], pars[0]);
+          ham.setZero();
+          for (int jj=0; jj<ham.rows()-1; jj++)
+          {
+            ham(jj, jj) = distribution(generator);
+            ham(jj, jj+1) = 1; 
+            ham(jj+1, jj) = 1; 
+          }
+          ham(ham.rows()-1,ham.rows()-1) =  distribution(generator);
+        }
 
         // Eigen-vector and -values solver
         ComplexEigenSolver<MatrixXcd> ces(ham);
@@ -109,8 +129,9 @@ int main()
 
           MatrixXcd U_mat = ((ces.eigenvectors()).conjugate()).transpose() * aux_mat1 * ces.eigenvectors();
           psi =  U_mat * psi_0;
-        
+
           abs2_vect_vals(psi);
+
           // Return probability calc.:
           data1.push_back(psi(pars[0]/2).real());
 
