@@ -127,7 +127,7 @@ int main()
           exp_vect_vals(aux);
           MatrixXcd aux_mat1 = aux.asDiagonal();
 
-          MatrixXcd U_mat = ((ces.eigenvectors()).conjugate()).transpose() * aux_mat1 * ces.eigenvectors();
+          MatrixXcd U_mat = ces.eigenvectors() * aux_mat1 * ((ces.eigenvectors()).conjugate()).transpose();
           psi =  U_mat * psi_0;
 
           abs2_vect_vals(psi);

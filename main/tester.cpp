@@ -90,26 +90,6 @@ int main()
         ham.diagonal(-1) = aux1;
         ham.diagonal(1) = aux1;
 
-        //printProgressBar(ll, N);
-        /*
-        // Hamiltonian creation with a diagonal potential perturbation
-        ham_aux.resize(pars[0], pars[0]);
-        ham_aux.setZero();
-        if (off_diag) {
-          for (int jj=0; jj<ham.rows()-1; jj++)
-          {
-            ham_aux(jj+1, jj) =  distribution(generator); 
-          }
-
-          ham = ham_aux + ham_aux.transpose();
-         
-        } else {
-          
-         
-          ham(ham.rows()-1,ham.rows()-1) =  distribution(generator);
-        }
-          */
-
         cout << ham << endl;
 
         // Eigen-vector and -values solver
@@ -143,23 +123,28 @@ int main()
           }
           exp_vect_vals(aux);
           
+          
+          //cout << aux << endl;
           cout << tt << endl;
-          cout << aux << endl;
-          cout << "_________" << endl;
+          cout << aux.transpose() << endl;
 
           MatrixXcd aux_mat1 = aux.asDiagonal();
 
-          MatrixXcd U_mat = ((ces.eigenvectors()).conjugate()).transpose() * aux_mat1 * ces.eigenvectors();
-          psi =  U_mat * psi_0;
-
-          cout << psi.conjugate().transpose() * psi << endl;
+          MatrixXcd U_mat =  ces.eigenvectors() * aux_mat1 *((ces.eigenvectors()).conjugate()).transpose();
+/*
+          psi = ((ces.eigenvectors()).conjugate()).transpose() * psi_0;
+          psi = aux_mat1 * psi;
+          psi = ces.eigenvectors() * psi;
+*/
+          psi = U_mat *psi_0;
+          //cout << psi.conjugate().transpose() * psi << endl;
 
           abs2_vect_vals(psi);
 
           // Return probability calc.:
           data1.push_back(psi(pars[0]/2).real());
 
-          cout << psi(pars[0]/2).real() << endl;
+          //cout << psi(pars[0]/2).real() << endl;
 
           // Deviation calc.:
           VectorXcd aux_vct1(pars[0]);
@@ -175,9 +160,9 @@ int main()
           complex<double> num2 = aux_vct2.dot(psi);
 
           data2.push_back(num1.real()-num2.real()*num2.real());
-          cout << num1.real()-num2.real()*num2.real() << endl;
+          cout << "1st SD:" << num1.real() << endl;
+          cout << "2nd SD:" << num2.real()*num2.real() << endl;
 
-          cout << "_________" << endl;
           cout << "_________" << endl;
           i += 1;
         }

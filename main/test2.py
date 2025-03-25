@@ -1,7 +1,7 @@
 import numpy as np
 import pylab as plt
 
-L = 64
+L = 8
 W = 2
 
 K = np.diag(np.ones(L-1),1)
@@ -14,12 +14,15 @@ for arg in range(1):
 
     print(arg)
 
-    H = np.array([
-    [(1.75607 + 0j), (1 + 0j), (0 + 0j), (0 + 0j)],
-    [(1 + 0j), (-0.173636 + 0j), (1 + 0j), (0 + 0j)],
-    [(0 + 0j), (1 + 0j), (3.36858 + 0j), (1 + 0j)],
-    [(0 + 0j), (0 + 0j), (1 + 0j), (-0.150378 + 0j)]])
-    e,v = np.linalg.eigh(H)
+    vct = np.array([2.3, 4.3, 1.2, 1.12, 1.23, 3.4, 3.16, 2.111], dtype=complex)
+
+    # Define the subdiagonal and superdiagonal
+    aux1 = np.full(len(vct) - 1, complex(1, 0))
+
+    # Create the tridiagonal matrix
+    ham = np.diag(vct) + np.diag(aux1, k=-1) + np.diag(aux1, k=1)
+    print(ham)
+    e,v = np.linalg.eigh(ham)
 
     #print(H)
 
@@ -45,8 +48,8 @@ for arg in range(1):
         print(str(i)+":")
         print(t)
         print(np.exp(-1j*e*t))
-        print(np.abs(psi[L//2])**2)
-        print(np.dot(np.arange(-L//2,L//2)**2,np.abs(psi)**2) - np.dot(np.arange(-L//2,L//2),np.abs(psi)**2)**2 )
+        print( "1st SD:"+str(np.dot(np.arange(-L//2,L//2)**2,np.abs(psi)**2)))
+        print( "2nd SD:"+str(np.dot(np.arange(-L//2,L//2),np.abs(psi)**2)**2))
         print("________________")
 
         i+=1
