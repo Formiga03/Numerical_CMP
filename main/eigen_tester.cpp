@@ -3,6 +3,9 @@
 #include <unsupported/Eigen/MatrixFunctions>
 #include <vector>
 #include <complex>
+#include <typeinfo>
+#include <random>
+#include "../inc/functions.h"
 using namespace std;
 using namespace Eigen;
 using Complex = std::complex<float>;
@@ -28,6 +31,42 @@ void abs2_vect_vals(VectorXcd& vect)
 
 int main()
 {
+  MatrixXcd ham;
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  int N = 8;  // Matrix size
+
+  VectorXcd vct3(N);
+  vct3 << 2.3, 4.3, 1.2, 1.12, 1.23, 3.4, 3.16, 2.111;
+
+  VectorXcd aux1(N-1);
+  aux1.setConstant(complex<double>(1, 0));  // Fill with (1,0)
+
+  MatrixXcd mat = MatrixXcd::Zero(N, N);  // Start with zero matrix
+
+  // Set the main diagonal
+  mat.diagonal(0) = vct3;
+
+  // Set subdiagonal and superdiagonal
+  mat.diagonal(-1) = aux1;
+  mat.diagonal(1) = aux1;
+
+  cout << "Vector aux1:\n" << aux1 << "\n\n";
+  cout << "Matrix mat:\n" << mat << "\n";
+
 
   vector<double> vct = {1,2};
   for(int ii=0; ii<2; ii++){

@@ -32,10 +32,8 @@ void exp_vect_vals(VectorXcd& vect)
 
 void abs2_vect_vals(VectorXcd& vect)
 {
-  for(int ii = 0; ii < vect.size(); ++ii)
-  {
-    vect(ii) = abs(vect(ii))*abs(vect(ii));
-  }
+  MatrixXcd aux = vect.conjugate().asDiagonal();
+  vect = aux * vect;
 }
 
 void mean_vector(vector<vector<double>>& vct, vector<double>& res)
@@ -54,22 +52,60 @@ void mean_vector(vector<vector<double>>& vct, vector<double>& res)
   }
 }
 
-void hamiltonian_creator(MatrixXcd& ham, double dist, bool off_diag) 
+void hamiltonian_creator(MatrixXcd& ham,default_random_engine gen, normal_distribution<double> dist, bool off_diag) 
 {
   if (off_diag) {
     for (int jj=0; jj<ham.rows()-1; jj++)
     {
-      ham(jj, jj+1) = dist; 
-      ham(jj+1, jj) = dist; 
+      ham(jj, jj+1) = dist(gen); 
+      ham(jj+1, jj) = dist(gen); 
     }
   } else {
     for (int jj=0; jj<ham.rows()-1; jj++)
     {
-      ham(jj, jj) = dist;
+      ham(jj, jj) = dist(gen);
       ham(jj, jj+1) = 1; 
       ham(jj+1, jj) = 1; 
     }
-    ham(ham.rows()-1,ham.rows()-1) = dist;
+    ham(ham.rows()-1,ham.rows()-1) = dist(gen);
+  }
+}
+
+void hamiltonian_creator(MatrixXcd& ham, default_random_engine gen, uniform_real_distribution<double> dist, bool off_diag) 
+{
+  if (off_diag) {
+    for (int jj=0; jj<ham.rows()-1; jj++)
+    {
+      ham(jj, jj+1) = dist(gen); 
+      ham(jj+1, jj) = dist(gen); 
+    }
+  } else {
+    for (int jj=0; jj<ham.rows()-1; jj++)
+    {
+      ham(jj, jj) = dist(gen);
+      ham(jj, jj+1) = 1; 
+      ham(jj+1, jj) = 1; 
+    }
+    ham(ham.rows()-1,ham.rows()-1) = dist(gen);
+  }
+}
+
+void hamiltonian_creator(MatrixXcd& ham, default_random_engine gen, gamma_distribution<double> dist, bool off_diag) 
+{
+  if (off_diag) {
+    for (int jj=0; jj<ham.rows()-1; jj++)
+    {
+      ham(jj, jj+1) = dist(gen); 
+      ham(jj+1, jj) = dist(gen); 
+    }
+  } else {
+    for (int jj=0; jj<ham.rows()-1; jj++)
+    {
+      ham(jj, jj) = dist(gen);
+      ham(jj, jj+1) = 1; 
+      ham(jj+1, jj) = 1; 
+    }
+    ham(ham.rows()-1,ham.rows()-1) = dist(gen);
   }
 }
 
