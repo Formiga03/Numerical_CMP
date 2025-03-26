@@ -1,7 +1,7 @@
 import numpy as np
 import pylab as plt
 
-L = 4
+L = 8
 W = 3
 
 K = np.diag(np.ones(L-1),1)
@@ -45,8 +45,8 @@ for arg in range(1):
     #############INBALANCE###############
     C = np.diag([x%2 for x in range(L)]) #Initial density matrix
     data2 = []
-    for t in [2**x for x in np.arange(-5,-4,0.5)]:
-        
+
+    for t in [2**x for x in np.arange(-5,-3,0.5)]:
           C1 = np.dot(np.conjugate(v).T, C)
           C1  = np.dot(np.diag(np.exp(-1j*e*t)), C1)
           C1 = np.dot(v, C1)
@@ -55,7 +55,47 @@ for arg in range(1):
           C1 = np.dot(C1, np.diag(np.exp(1j*e*t)))
           C1 = np.dot(C1, np.conjugate(v).T)
           DD = np.diag(C1)
+          print(t)
+          print(2*(np.sum(DD[1::2])-np.sum(DD[::2]))/L)
           data2.append(np.sum(DD[1::2])-np.sum(DD[::2]))
 
     hit2.append(data2)
 
+
+    ###Second Method (Faster) Please compare the two
+
+    #############INBALANCE###############
+    C = np.zeros([L,L//2], complex)
+    for x in range(L//2):
+        C[2*x,x] = x%2
+
+    print(C)
+    data3 = []
+
+    for t in [2**x for x in np.arange(-5,20,0.5)]:
+          C1 = np.dot(np.conjugate(v).T, C)
+          C1  = np.dot(np.diag(np.exp(-1j*e*t)), C1)
+          C1 = np.dot(v, C1)
+
+          C_Final = np.dot(np.conjugate(C1).T,C1)
+
+          DD = np.diag(C_Final)
+          data3.append(np.sum(DD[1::2])-np.sum(DD[::2]))
+
+    hit3.append(data2)
+
+
+
+plt.figure(1)
+plt.subplot(121)
+plt.plot([2**x for x in np.arange(-5,20,0.5)], np.mean(hit,0), "x-")
+plt.semilogx()
+plt.subplot(122)
+plt.plot([2**x for x in np.arange(-5,20,0.5)], np.mean(hit1,0), "x-")
+plt.semilogx()
+
+plt.figure(2)
+plt.plot([2**x for x in np.arange(-5,20,0.5)], 2*np.mean(hit2,0)/L, "x-")
+plt.plot([2**x for x in np.arange(-5,20,0.5)], 2*np.mean(hit3,0)/L, "x-")
+plt.semilogx()
+plt.show()

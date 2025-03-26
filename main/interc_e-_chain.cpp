@@ -25,7 +25,7 @@ int main()
   vector<double> W = {2, 3, 4}; // perturbance amplitude
   const int N = 30; // # of simulations per parameter for the averaging of the simulation values
   vector<double> T_pars = {-5, 20, 0.5, 1}; // Time specifications of the simulation {tmin, tmax, step, log scale(0:false, 1:trues)}
-  bool off_diag = false;
+  bool off_diag = true;
   
   // Distribution function initialization
   default_random_engine generator;

@@ -8,14 +8,39 @@ directory = "../outputs"  # Change this to your target directory
 files = os.listdir(directory)
 files.sort()
 
-print(files) 
- 
-for ii in range(len(files)//2):
-    rf = Reader_output("../outputs/" + files[ii]) 
-    stdev = Reader_output("../outputs/" + files[len(files)//2 + ii]) 
+#print(files) 
 
-    rf_dist = files[ii].split("_")
-    stdev_dist = files[len(files)//2 + ii].split("_")
+rf_sd = []
+imbalance = []
+
+for xx in files:
+    if "Imbalance" in xx:
+        imbalance.append(xx)
+    if ("ReturnProb" or "StandDev") in xx:
+        rf_sd.append(xx)
+
+
+for ii in range(len(imbalance)):
+    imbalance.sort()
+    imb = Reader_output("../outputs/" + imbalance[ii])
+
+    print(type(imb[1][0]))
+
+    imb_dist = imbalance[ii].split("_")
+    title = f"Imbalance with a perturbation following a\n {imb_dist[1]} and W={imb[0][0]}."
+    plot_graph(imb, [[0,1], [2,3]], 
+                imbalance[ii], 
+                title=title)
+
+
+for ii in range(len(rf_sd)//2):
+    rf_sd.sort()
+
+    rf = Reader_output("../outputs/" + rf_sd[ii]) 
+    stdev = Reader_output("../outputs/" + rf_sd[len(rf_sd)//2 + ii]) 
+
+    rf_dist = rf_sd[ii].split("_")
+    stdev_dist = rf_sd[len(rf_sd)//2 + ii].split("_")
     print(rf_dist, stdev_dist)
 
     if rf_dist[-2] == "OffDiag":
@@ -25,7 +50,7 @@ for ii in range(len(files)//2):
         title= f"Return Probability (right) and Standard Deviation (left) with \na perturbation following a {rf_dist[1]} and W={rf[0][0]}."
 
     plot_2graphs(rf, stdev, [[0,1],[2,3]], [[0,1],[2,3]], 
-                [files[ii], files[len(files)//2 + ii]], 
+                [rf_sd[ii], rf_sd[len(rf_sd)//2 + ii]], 
                 title=title)
 
 """

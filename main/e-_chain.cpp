@@ -26,6 +26,7 @@ int main()
   const int N = 30; // # of simulations per parameter for the averaging of the simulation values
   vector<double> T_pars = {-5, 20, 0.5, 1}; // Time specifications of the simulation {tmin, tmax, step, log scale(0:false, 1:trues)}
   bool off_diag = true;
+  bool even = true;
   
   // Distribution function initialization
   default_random_engine generator;
@@ -42,23 +43,11 @@ int main()
     // distribuition function and perturbation info
     vector<double> pert = {W[kk]};
 
-    // return probability
+    // imbalance
     vector<vector<double>> plt_dt1; // data for output in .txt file: {tpars, Lvals, data}
     plt_dt1.push_back(pert);
     plt_dt1.push_back(T_pars);
     plt_dt1.push_back(L);
-
-    // deviation
-    vector<vector<double>> plt_dt2; // data for output in .txt file: {tpars, Lvals, data}
-    plt_dt2.push_back(pert);
-    plt_dt2.push_back(T_pars);
-    plt_dt2.push_back(L);
-
-    // imbalance
-    vector<vector<double>> plt_dt3; // data for output in .txt file: {tpars, Lvals, data}
-    plt_dt3.push_back(pert);
-    plt_dt3.push_back(T_pars);
-    plt_dt3.push_back(L);
 
     for(int ii = 0; ii<L.size(); ii++)
     {
@@ -68,111 +57,98 @@ int main()
       vector<int> pars = {int(L[ii]), int(W[kk])};
 
       // Initialization of the initial wave function
-      VectorXcd psi_0;
+      MatrixXcd rho_0(pars[0], pars[0]);
 
-      // Initialization of the vectors where we will store the evolution in time of the value theat characterize every simulated system
+      // Initialization of the density matrux where we will store the evolution in time of the value theat characterize every simulated system
       vector<vector<double>> sim_data1;
-      vector<vector<double>> sim_data2;
-      vector<vector<double>> sim_data3;
 
       // Innitialization of the Matrix object which will be the hamiltonian
-      MatrixXcd ham;
-      MatrixXcd ham_aux;
+      MatrixXcd ham(pars[0], pars[0]);
 
       for (int ll=0; ll<N; ll++)
       {
+        ham.setZero();
         printProgressBar(ll, N);
 
         // Hamiltonian creation with a diagonal potential perturbation
-        
-        if (off_diag) {
-          ham_aux.resize(pars[0], pars[0]);
-          ham_aux.setZero();
-          for (int jj=0; jj<ham.rows()-1; jj++)
-          {
-            ham_aux(jj+1, jj) =  distribution(generator); 
-          }
-
-          ham = ham_aux + ham_aux.transpose();
-         
-        } else {
-          ham.resize(pars[0], pars[0]);
-          ham.setZero();
-          for (int jj=0; jj<ham.rows()-1; jj++)
-          {
-            ham(jj, jj) = distribution(generator);
-            ham(jj, jj+1) = 1; 
-            ham(jj+1, jj) = 1; 
-          }
-          ham(ham.rows()-1,ham.rows()-1) =  distribution(generator);
-        }
+        hamiltonian_creator(ham, generator, distribution, off_diag);
 
         // Eigen-vector and -values solver
         ComplexEigenSolver<MatrixXcd> ces(ham);
         //print_ham_eigen_vectors_values(ham, ces, pars);
         
         // Definition of the initial state of the wave function in the center of the lattice
-        VectorXcd psi_0 = VectorXcd::Zero(pars[0]);
-        psi_0(pars[0]/2) = 1;
+        density_creator(rho_0, even);
 
-        VectorXcd psi(psi_0);
+        MatrixXcd rho(rho_0);
         VectorXcd eigen_vls(ces.eigenvalues());
+        VectorXcd aux_vct1(pars[0]);
+        VectorXcd aux_vct2(pars[0]);
+        VectorXcd rho_diag(pars[0]);
+        MatrixXcd eigen_vcts(ces.eigenvectors());
+        MatrixXcd aux_mat1(pars[0], pars[0]);
+        MatrixXcd aux_mat2(pars[0], pars[0]);
+        MatrixXcd aux_mat3(pars[0], pars[0]);
+        MatrixXcd aux_mat4(pars[0], pars[0]);
         
-        vector<double> data1, data2, data3;
+        vector<double> data1;
 
         // Initial value of time
         double tt;
 
         for (double xx=T_pars[0]; xx<T_pars[1]; xx+=T_pars[2])
         {
-          tt = pow(2, xx);
-
-          VectorXcd aux = eigen_vls;
-          for(int jjj = 0; jjj < aux.size(); ++jjj)
-          {
-              aux(jjj) = aux(jjj) * complex<double>(0,-1) * complex<double>(tt,0);
-          }
-          exp_vect_vals(aux);
-          MatrixXcd aux_mat1 = aux.asDiagonal();
-
-          MatrixXcd U_mat = ces.eigenvectors() * aux_mat1 * ((ces.eigenvectors()).conjugate()).transpose();
-          psi =  U_mat * psi_0;
-
-          abs2_vect_vals(psi);
-
-          // Return probability calc.:
-          data1.push_back(psi(pars[0]/2).real());
-
-          // Deviation calc.:
-          VectorXcd aux_vct1(pars[0]);
-          VectorXcd aux_vct2(pars[0]);
-
-          for (int iii = -pars[0]/2; iii < pars[0]/2; ++iii) 
-          {
-            aux_vct1(iii+pars[0]/2) = complex<double>(iii*iii,0);
-            aux_vct2(iii+pars[0]/2) = complex<double>(iii,0);
-          }
-
-          complex<double> num1 = aux_vct1.dot(psi);
-          complex<double> num2 = aux_vct2.dot(psi);
-
-          data2.push_back(num1.real()-num2.real()*num2.real());
+          tt = pow(2, xx); 
           
+          aux_vct1.setZero();
+          aux_vct2.setZero();
+          rho_diag.setZero();
+
+          aux_mat1.setZero();
+          aux_mat2.setZero();
+          aux_mat3.setZero();
+          aux_mat4.setZero();
+
+          for(int jjj = 0; jjj < pars[0]; ++jjj)
+          {
+            aux_vct1(jjj) = eigen_vls(jjj) * complex<double>(0,-1) * complex<double>(tt,0);
+            aux_vct2(jjj) = eigen_vls(jjj) * complex<double>(0,1) * complex<double>(tt,0);
+          }
+
+          exp_vect_vals(aux_vct1);
+          exp_vect_vals(aux_vct2);
+
+          aux_mat1 = aux_vct1.asDiagonal(); // diagonalized time evolution exponencial matrix
+          aux_mat2 = aux_vct2.asDiagonal(); // hermitian diagonalized time evolution exponencial matrix
+
+          aux_mat3 = eigen_vcts * aux_mat1 * eigen_vcts.conjugate().transpose(); // time evolution mat. 
+          aux_mat4 = eigen_vcts * aux_mat2 * eigen_vcts.conjugate().transpose(); // hermitian time evolution mat. 
+
+          rho = aux_mat3 * rho_0 * aux_mat4; 
+          rho_diag = rho.diagonal();
+
+          complex<double> even_ind = 0; 
+          complex<double> odd_ind = 0; 
+
+          for (int ee = 0; ee < rho_diag.size(); ee += 2) 
+          {
+            even_ind += rho_diag(ee+1);
+            odd_ind += rho_diag(ee);
+          }
+
+          data1.push_back(-2*odd_ind.real()/pars[0] + 2*even_ind.real()/pars[0]);
+
         }
 
         sim_data1.push_back(data1);
-        sim_data2.push_back(data2);    
       }
       cout<< endl;
 
       vector<double> graph_data1;
-      vector<double> graph_data2;
 
       mean_vector(sim_data1, graph_data1);
-      mean_vector(sim_data2, graph_data2); 
       
       plt_dt1.push_back(graph_data1);
-      plt_dt2.push_back(graph_data2);
 
     }
     cout<< endl;
@@ -183,8 +159,7 @@ int main()
     }
     filename += "_W=" + to_string(int(W[kk]));
 
-    writter.output_data("outputs/ReturnProb_"+filename+".txt", plt_dt1);
-    writter.output_data("outputs/StandDev_"+filename+".txt", plt_dt2);
+    writter.output_data("outputs/Imbalance_"+filename+".txt", plt_dt1);
   }
   cout<< endl;
 
