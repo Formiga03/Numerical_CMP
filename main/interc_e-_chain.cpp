@@ -23,9 +23,10 @@ int main()
   // Definition of parameters:
   vector<double> L = {8, 12, 32, 64}; // # of lattice points
   vector<double> W = {2, 3, 4}; // perturbance amplitude
-  const int N = 30; // # of simulations per parameter for the averaging of the simulation values
+  const int N = 1; // # of simulations per parameter for the averaging of the simulation values
   vector<double> T_pars = {-5, 20, 0.5, 1}; // Time specifications of the simulation {tmin, tmax, step, log scale(0:false, 1:trues)}
   bool off_diag = true;
+  bool period_pot = true;
   
   // Distribution function initialization
   default_random_engine generator;
@@ -68,15 +69,15 @@ int main()
       vector<vector<double>> sim_data2;
 
       // Innitialization of the Matrix object which will be the hamiltonian
-      MatrixXcd ham;
+      MatrixXcd ham(pars[0], pars[0]);
       MatrixXcd ham_aux;
 
       for (int ll=0; ll<N; ll++)
       {
-        printProgressBar(ll, N);
+        //printProgressBar(ll, N);
 
         // Hamiltonian creation with a diagonal potential perturbation
-        
+        /*
         if (off_diag) {
           ham_aux.resize(pars[0], pars[0]);
           ham_aux.setZero();
@@ -98,6 +99,9 @@ int main()
           }
           ham(ham.rows()-1,ham.rows()-1) =  distribution(generator);
         }
+        */
+        ham_PeridPot_creator(ham);
+        cout << ham << endl << endl;
 
         // Eigen-vector and -values solver
         ComplexEigenSolver<MatrixXcd> ces(ham);

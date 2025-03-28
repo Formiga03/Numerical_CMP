@@ -25,7 +25,8 @@ int main()
   vector<double> W = {2, 3, 4}; // perturbance amplitude
   const int N = 30; // # of simulations per parameter for the averaging of the simulation values
   vector<double> T_pars = {-5, 20, 0.5, 1}; // Time specifications of the simulation {tmin, tmax, step, log scale(0:false, 1:trues)}
-  bool off_diag = true;
+  bool off_diag = false;
+  bool period_pot = true;
   
   // Distribution function initialization
   default_random_engine generator;
@@ -35,9 +36,9 @@ int main()
     cout << "W=" << W[kk] << ":" << endl; 
 
     // Distribution function:
-    //uniform_real_distribution<double> distribution(-W[kk], W[kk]);
+    uniform_real_distribution<double> distribution(0, 2*M_PI);
     //gamma_distribution<double> distribution (2.0,2.0);
-    normal_distribution<double> distribution(2.0,W[kk]);
+    //normal_distribution<double> distribution(2.0,W[kk]);
 
     // distribuition function and perturbation info
     vector<double> pert = {W[kk]};
@@ -54,12 +55,6 @@ int main()
     plt_dt2.push_back(T_pars);
     plt_dt2.push_back(L);
 
-    // imbalance
-    vector<vector<double>> plt_dt3; // data for output in .txt file: {tpars, Lvals, data}
-    plt_dt3.push_back(pert);
-    plt_dt3.push_back(T_pars);
-    plt_dt3.push_back(L);
-
     for(int ii = 0; ii<L.size(); ii++)
     {
       cout << "-L=" << L[ii] << endl;
@@ -73,40 +68,16 @@ int main()
       // Initialization of the vectors where we will store the evolution in time of the value theat characterize every simulated system
       vector<vector<double>> sim_data1;
       vector<vector<double>> sim_data2;
-      vector<vector<double>> sim_data3;
 
       // Innitialization of the Matrix object which will be the hamiltonian
-      MatrixXcd ham;
-      MatrixXcd ham_aux;
+      MatrixXcd ham(pars[0], pars[0]);
 
       for (int ll=0; ll<N; ll++)
       {
         printProgressBar(ll, N);
 
-        // Hamiltonian creation with a diagonal potential perturbation
+        hamiltonian_creator(ham, generator, distribution, off_diag);
         
-        if (off_diag) {
-          ham_aux.resize(pars[0], pars[0]);
-          ham_aux.setZero();
-          for (int jj=0; jj<ham.rows()-1; jj++)
-          {
-            ham_aux(jj+1, jj) =  distribution(generator); 
-          }
-
-          ham = ham_aux + ham_aux.transpose();
-         
-        } else {
-          ham.resize(pars[0], pars[0]);
-          ham.setZero();
-          for (int jj=0; jj<ham.rows()-1; jj++)
-          {
-            ham(jj, jj) = distribution(generator);
-            ham(jj, jj+1) = 1; 
-            ham(jj+1, jj) = 1; 
-          }
-          ham(ham.rows()-1,ham.rows()-1) =  distribution(generator);
-        }
-
         // Eigen-vector and -values solver
         ComplexEigenSolver<MatrixXcd> ces(ham);
         //print_ham_eigen_vectors_values(ham, ces, pars);
@@ -118,7 +89,18 @@ int main()
         VectorXcd psi(psi_0);
         VectorXcd eigen_vls(ces.eigenvalues());
         
-        vector<double> data1, data2, data3;
+        vector<double> data1, data2;
+
+        // Deviation Calc.
+        VectorXcd aux_vct1(pars[0]);
+        VectorXcd aux_vct2(pars[0]);
+
+        for (int iii = -pars[0]/2; iii < pars[0]/2; ++iii) 
+        {
+          aux_vct1(iii+pars[0]/2) = complex<double>(iii*iii,0);
+          aux_vct2(iii+pars[0]/2) = complex<double>(iii,0);
+        }
+
 
         // Initial value of time
         double tt;
@@ -142,17 +124,10 @@ int main()
 
           // Return probability calc.:
           data1.push_back(psi(pars[0]/2).real());
+          cout << tt << ":" << endl;
+          cout << psi(pars[0]/2).real() << endl;
 
           // Deviation calc.:
-          VectorXcd aux_vct1(pars[0]);
-          VectorXcd aux_vct2(pars[0]);
-
-          for (int iii = -pars[0]/2; iii < pars[0]/2; ++iii) 
-          {
-            aux_vct1(iii+pars[0]/2) = complex<double>(iii*iii,0);
-            aux_vct2(iii+pars[0]/2) = complex<double>(iii,0);
-          }
-
           complex<double> num1 = aux_vct1.dot(psi);
           complex<double> num2 = aux_vct2.dot(psi);
 
@@ -177,7 +152,12 @@ int main()
     }
     cout<< endl;
     iofile writter;
-    string filename =  string(typeid(distribution).name());
+    string filename = "";
+    if (not period_pot) {
+      filename +=  string(typeid(distribution).name());
+    } else {
+      filename +=  "QuasiPeriodicPert_withAlpha_";
+    }
     if(off_diag){
       filename += "_OffDiag";
     }

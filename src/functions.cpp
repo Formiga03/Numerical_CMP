@@ -30,6 +30,17 @@ void exp_vect_vals(VectorXcd& vect)
   }
 }
 
+VectorXcd log_vect_vals(VectorXcd& vect)
+{
+  VectorXcd res(vect.size());
+  for(int ii = 0; ii < vect.size(); ++ii)
+  {
+    res(ii) = log(vect(ii));
+  }
+
+  return res;
+}
+
 void abs2_vect_vals(VectorXcd& vect)
 {
   MatrixXcd aux = vect.conjugate().asDiagonal();
@@ -52,7 +63,28 @@ void mean_vector(vector<vector<double>>& vct, vector<double>& res)
   }
 }
 
-void hamiltonian_creator(MatrixXcd& ham,default_random_engine gen, normal_distribution<double> dist, bool off_diag) 
+void hamiltonian_creator(MatrixXcd& ham,default_random_engine& gen, normal_distribution<double>& dist, bool off_diag) 
+{
+  if (off_diag) {
+    double aux_num;
+    for (int jj=0; jj<ham.rows()-1; jj++)
+    {
+      aux_num = dist(gen);
+      ham(jj, jj+1) = aux_num; 
+      ham(jj+1, jj) = aux_num; 
+    }
+  } else {
+    for (int jj=0; jj<ham.rows()-1; jj++)
+    {
+      ham(jj, jj) = dist(gen);
+      ham(jj, jj+1) = 1; 
+      ham(jj+1, jj) = 1; 
+    }
+    ham(ham.rows()-1,ham.rows()-1) = dist(gen);
+  }
+}
+
+void hamiltonian_creator(MatrixXcd& ham, default_random_engine& gen, uniform_real_distribution<double>& dist, bool off_diag) 
 {
   if (off_diag) {
     for (int jj=0; jj<ham.rows()-1; jj++)
@@ -71,7 +103,7 @@ void hamiltonian_creator(MatrixXcd& ham,default_random_engine gen, normal_distri
   }
 }
 
-void hamiltonian_creator(MatrixXcd& ham, default_random_engine gen, uniform_real_distribution<double> dist, bool off_diag) 
+void hamiltonian_creator(MatrixXcd& ham, default_random_engine& gen, gamma_distribution<double>& dist, bool off_diag) 
 {
   if (off_diag) {
     for (int jj=0; jj<ham.rows()-1; jj++)
@@ -90,22 +122,23 @@ void hamiltonian_creator(MatrixXcd& ham, default_random_engine gen, uniform_real
   }
 }
 
-void hamiltonian_creator(MatrixXcd& ham, default_random_engine gen, gamma_distribution<double> dist, bool off_diag) 
+void ham_PeridPot_creator(MatrixXcd& ham, double W, double alpha, bool off_diag)
 {
-  if (off_diag) {
-    for (int jj=0; jj<ham.rows()-1; jj++)
-    {
-      ham(jj, jj+1) = dist(gen); 
-      ham(jj+1, jj) = dist(gen); 
-    }
-  } else {
-    for (int jj=0; jj<ham.rows()-1; jj++)
-    {
-      ham(jj, jj) = dist(gen);
-      ham(jj, jj+1) = 1; 
-      ham(jj+1, jj) = 1; 
-    }
-    ham(ham.rows()-1,ham.rows()-1) = dist(gen);
+  ham.setZero();
+  const double sgm = (1+sqrt(5))/2;
+  auto u = [sgm, W, alpha](double ii) -> double {
+    double res = W*cos(2*M_PI*sgm*ii + alpha);
+    return res;
+  };
+
+  for (int iii=0; iii<ham.rows(); iii++)
+  {
+    ham(iii, iii) = u(iii);
+  }
+  for (int jj=0; jj<ham.rows()-1; jj++)
+  {
+    ham(jj, jj+1) = 1; 
+    ham(jj+1, jj) = 1;
   }
 }
 
@@ -135,3 +168,17 @@ void printProgressBar(int progress, int total, int barWidth)
   std::cout.flush();
 }
 
+void density_creator(MatrixXcd& dens, bool even)
+{
+  int dim =  dens.rows();
+
+  dens.setZero();
+  Eigen::VectorXd diag_elements(dim);
+
+  for (int hh = 0; hh < dim; ++hh) 
+  {
+    diag_elements(hh) = ((hh) % 2 == 1) ? 1 : 0; 
+  }
+
+  dens = diag_elements.asDiagonal();
+}

@@ -49,6 +49,12 @@ int main()
     plt_dt1.push_back(T_pars);
     plt_dt1.push_back(L);
 
+    // entangement entropy
+    vector<vector<double>> plt_dt2; // data for output in .txt file: {tpars, Lvals, data}
+    plt_dt2.push_back(pert);
+    plt_dt2.push_back(T_pars);
+    plt_dt2.push_back(L);
+
     for(int ii = 0; ii<L.size(); ii++)
     {
       cout << "-L=" << L[ii] << endl;
@@ -58,9 +64,11 @@ int main()
 
       // Initialization of the initial wave function
       MatrixXcd rho_0(pars[0], pars[0]);
+      MatrixXcd phi_0(pars[0], pars[0]/2);
+      phi_0.setZero();
 
-      // Initialization of the density matrux where we will store the evolution in time of the value theat characterize every simulated system
-      vector<vector<double>> sim_data1;
+      // Initialization of the density matrix where we will store the evolution in time of the value theat characterize every simulated system
+      vector<vector<double>> sim_data1, sim_data2;
 
       // Innitialization of the Matrix object which will be the hamiltonian
       MatrixXcd ham(pars[0], pars[0]);
@@ -80,18 +88,47 @@ int main()
         // Definition of the initial state of the wave function in the center of the lattice
         density_creator(rho_0, even);
 
+        VectorXcd aux(pars[0]/2);
+        if (even){
+          for (int jjj=0; jjj<pars[0]; jjj++)
+          {
+            aux.setZero();
+            if (jjj%2 == 1){
+              aux((jjj-1)/2) = 1;
+              phi_0.row(jjj) = aux;
+            }
+          }
+        } if (not even){
+          for (int jjj=0; jjj<pars[0]; jjj++)
+          {
+            aux.setZero();
+            if (jjj%2 == 0){
+              aux(jjj/2) = 1;
+              phi_0.row(jjj) = aux;
+            }
+          }
+        }
+
         MatrixXcd rho(rho_0);
+        MatrixXcd phi(pars[0], pars[0]);
+        phi.setZero();
+    
         VectorXcd eigen_vls(ces.eigenvalues());
         VectorXcd aux_vct1(pars[0]);
         VectorXcd aux_vct2(pars[0]);
+        VectorXcd aux_vct3(pars[0]);
+        VectorXcd aux_vct4(pars[0]);
         VectorXcd rho_diag(pars[0]);
         MatrixXcd eigen_vcts(ces.eigenvectors());
+
         MatrixXcd aux_mat1(pars[0], pars[0]);
         MatrixXcd aux_mat2(pars[0], pars[0]);
         MatrixXcd aux_mat3(pars[0], pars[0]);
         MatrixXcd aux_mat4(pars[0], pars[0]);
+
+        MatrixXcd aux_mat5(pars[0]/2, pars[0]/2);
         
-        vector<double> data1;
+        vector<double> data1, data2;
 
         // Initial value of time
         double tt;
@@ -102,29 +139,32 @@ int main()
           
           aux_vct1.setZero();
           aux_vct2.setZero();
+          aux_vct3.setZero();
+          aux_vct4.setZero();
           rho_diag.setZero();
 
           aux_mat1.setZero();
           aux_mat2.setZero();
           aux_mat3.setZero();
           aux_mat4.setZero();
+          aux_mat5.setZero();
 
           for(int jjj = 0; jjj < pars[0]; ++jjj)
           {
             aux_vct1(jjj) = eigen_vls(jjj) * complex<double>(0,-1) * complex<double>(tt,0);
-            aux_vct2(jjj) = eigen_vls(jjj) * complex<double>(0,1) * complex<double>(tt,0);
+            //aux_vct2(jjj) = eigen_vls(jjj) * complex<double>(0,1) * complex<double>(tt,0);
           }
 
           exp_vect_vals(aux_vct1);
-          exp_vect_vals(aux_vct2);
+          //exp_vect_vals(aux_vct2);
 
           aux_mat1 = aux_vct1.asDiagonal(); // diagonalized time evolution exponencial matrix
-          aux_mat2 = aux_vct2.asDiagonal(); // hermitian diagonalized time evolution exponencial matrix
+          //aux_mat2 = aux_vct2.asDiagonal(); // hermitian diagonalized time evolution exponencial matrix
 
           aux_mat3 = eigen_vcts * aux_mat1 * eigen_vcts.conjugate().transpose(); // time evolution mat. 
-          aux_mat4 = eigen_vcts * aux_mat2 * eigen_vcts.conjugate().transpose(); // hermitian time evolution mat. 
+          //aux_mat4 = eigen_vcts * aux_mat2 * eigen_vcts.conjugate().transpose(); // hermitian time evolution mat. 
 
-          rho = aux_mat3 * rho_0 * aux_mat4; 
+          rho = aux_mat3 * rho_0 * aux_mat3.conjugate().transpose(); 
           rho_diag = rho.diagonal();
 
           complex<double> even_ind = 0; 
@@ -136,19 +176,44 @@ int main()
             odd_ind += rho_diag(ee);
           }
 
-          data1.push_back(-2*odd_ind.real()/pars[0] + 2*even_ind.real()/pars[0]);
+          if (even) {
+            data1.push_back(2*even_ind.real()/pars[0] - 2*odd_ind.real()/pars[0]);
+          } if (not even) {
+            data1.push_back(2*odd_ind.real()/pars[0] - 2*even_ind.real()/pars[0]);
+          }
+
+          // Entanglement Entropy Calc.
+          
+          phi = aux_mat3 * phi_0 * phi_0.conjugate().transpose() * aux_mat3.conjugate().transpose();
+          aux_mat5 = phi.block(0, 0, pars[0] / 2, pars[0] / 2);
+
+          ComplexEigenSolver<MatrixXcd> ces1(aux_mat5);
+
+          double threshold = pow(10, -20);
+
+          // Compare using absolute values
+          aux_vct3 = (ces1.eigenvalues().array().abs() >= threshold).select(ces1.eigenvalues(), 0);
+          aux_vct4 = VectorXcd::Ones(pars[0] / 2) - ces1.eigenvalues();
+          aux_vct4 = (aux_vct4.array().abs() >= threshold).select(aux_vct4, 0);
+
+          complex<double> S = -aux_vct3.dot(log_vect_vals(aux_vct3)) - aux_vct4.dot(log_vect_vals(aux_vct4));
+          data2.push_back(S.real());
+          //cout << S << endl;
 
         }
 
         sim_data1.push_back(data1);
+        sim_data2.push_back(data2);
       }
       cout<< endl;
 
-      vector<double> graph_data1;
+      vector<double> graph_data1, graph_data2;
 
       mean_vector(sim_data1, graph_data1);
+      mean_vector(sim_data2, graph_data2);
       
       plt_dt1.push_back(graph_data1);
+      plt_dt2.push_back(graph_data2);
 
     }
     cout<< endl;
@@ -160,6 +225,7 @@ int main()
     filename += "_W=" + to_string(int(W[kk]));
 
     writter.output_data("outputs/Imbalance_"+filename+".txt", plt_dt1);
+    writter.output_data("outputs/EntenglEntrop_"+filename+".txt", plt_dt2);
   }
   cout<< endl;
 

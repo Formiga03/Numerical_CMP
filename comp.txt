@@ -3,3 +3,5 @@ g++ main.cpp -std=c++11 -I/usr/local/include/python2.7 -I/usr/local/lib/python2.
 g++ -std=c++11 -I/home/joao/Projs/TAFC/FMC/lib -I/usr/include/python3.8 -I/usr/include/python3.8/site-packages/numpy/core/include -I/usr/include/eigen3 main/plot_test.cpp -o ./test.exe -lpython3.8
 
 g++ -std=c++11 -I/home/joao/Projs/TAFC/FMC/inc -I/usr/include/python3.8 -I/usr/include/python3.8/site-packages/numpy/core/include -I/usr/include/eigen3 main/main.cpp src/functions.cpp -o test.exe -lpython3.8
+
+g++ -std=c++11 -I/home/joao/Projs/TAFC/FMC/inc -I/usr/include/eigen3 main/aubry–andre_model.cpp src/functions.cpp src/iofile.cpp -o test.exe -lpython3.8
