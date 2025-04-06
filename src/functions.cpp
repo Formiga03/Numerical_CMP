@@ -1,6 +1,7 @@
 #include "functions.h"
 
-void eigenvct_to_vector(VectorXd vct1, vector<double> vct2)
+
+void eigenvct_to_vector(VectorXd& vct1, vector<double>& vct2)
 {
   for (int i = 0; i < vct1.size(); ++i) 
   {
@@ -43,7 +44,9 @@ VectorXcd log_vect_vals(VectorXcd& vect)
 
 void abs2_vect_vals(VectorXcd& vect)
 {
-  MatrixXcd aux = vect.conjugate().asDiagonal();
+  MatrixXcd aux(vect.size(), vect.size());
+  aux.setZero();
+  aux = vect.conjugate().asDiagonal();
   vect = aux * vect;
 }
 
@@ -63,7 +66,38 @@ void mean_vector(vector<vector<double>>& vct, vector<double>& res)
   }
 }
 
-void hamiltonian_creator(MatrixXcd& ham,default_random_engine& gen, normal_distribution<double>& dist, bool off_diag) 
+vector<double> mean_vector(vector<vector<double>>& vct)
+{
+  double aux_mean;
+  vector<double> res;
+
+  for(int ii=0; ii<vct[0].size(); ii++)
+  {
+    aux_mean = 0;
+    for(int jj=0; jj<vct.size(); jj++)
+    {
+      aux_mean += vct[jj][ii];
+    }
+
+    res.push_back(aux_mean/vct.size());
+  }
+
+  return res;
+}
+
+double mean_vector(vector<double>& vct)
+{
+  double aux_mean=0;
+
+  for(int jj=0; jj<vct.size(); jj++)
+  {
+    aux_mean += vct[jj];
+  }
+
+  return aux_mean/vct.size();
+}
+
+void hamiltonian_creator(MatrixXcd& ham, default_random_engine& gen, normal_distribution<double>& dist, bool off_diag) 
 {
   if (off_diag) {
     double aux_num;
@@ -122,7 +156,7 @@ void hamiltonian_creator(MatrixXcd& ham, default_random_engine& gen, gamma_distr
   }
 }
 
-void ham_PeridPot_creator(MatrixXcd& ham, double W, double alpha, bool off_diag)
+void ham_PeridPot_creator(MatrixXcd& ham, double W, double alpha, bool off_diag, bool PBC)
 {
   ham.setZero();
   const double sgm = (1+sqrt(5))/2;
@@ -139,6 +173,51 @@ void ham_PeridPot_creator(MatrixXcd& ham, double W, double alpha, bool off_diag)
   {
     ham(jj, jj+1) = 1; 
     ham(jj+1, jj) = 1;
+  }
+
+  if (PBC){
+    ham(0, ham.rows()-1) = 1;
+    ham(ham.rows()-1, 0) = 1;
+  }
+}
+
+void ham_PeridPot_creator(MatrixXcd& ham, double W, double beta, double alpha, bool off_diag, bool PBC)
+{
+  ham.setZero();
+  int dims = ham.rows();
+  VectorXd v = VectorXd::Ones(dims-1);
+  VectorXd vaux(dims-1);
+
+  auto u = [beta, W, alpha](double ii) -> double {
+    double res = W*cos(2*M_PI*beta*ii + alpha);
+    return res;
+  };
+
+  if (off_diag){
+
+    for (int iii=0; iii<dims-1; iii++)
+    {
+      vaux(iii) = u(iii);
+    }
+
+    ham.diagonal(-1) = vaux;
+    ham.diagonal(1) = vaux;
+
+  } if (not off_diag) {
+
+    for (int iii=0; iii<ham.rows(); iii++)
+    {
+      ham(iii, iii) = u(iii);
+    }
+
+    ham.diagonal(-1) = v;
+    ham.diagonal(1) = v;
+
+  }
+
+  if (PBC){
+    ham(0, ham.rows()-1) = 1;
+    ham(ham.rows()-1, 0) = 1;
   }
 }
 
@@ -181,4 +260,39 @@ void density_creator(MatrixXcd& dens, bool even)
   }
 
   dens = diag_elements.asDiagonal();
+}
+
+void W_sort(vector<vector<vector<double>>>& vct)
+{
+  vector<vector<vector<double>>> aux1;
+  vector<vector<double>> aux2;
+  
+  for (int ii=0; ii<vct[0].size(); ii++)
+  {
+
+    for (int jj=0; jj<vct.size(); jj++)
+    {
+      aux2.push_back(vct[jj][ii]);
+    }
+
+    aux1.push_back(aux2);
+    aux2.clear();
+  }
+
+  vct = aux1;
+}
+
+vector<double> readVectorFromInput() 
+{
+  string input;
+  getline(std::cin, input);
+
+  stringstream ss(input);
+  vector<double> vec;
+  double number;
+
+  while (ss >> number) {
+      vec.push_back(number);
+  }
+  return vec;
 }
